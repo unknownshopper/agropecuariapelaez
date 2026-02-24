@@ -1,0 +1,281 @@
+
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Propuesta · Olmeca Code · Agroequipos Pelaez</title>
+  <link rel="stylesheet" href="style.css" />
+  <style>
+    body.modern .letter{max-width:980px;margin:0 auto;padding:48px 0 72px}
+    body.modern .letter-card{border-radius:22px;border:1px solid var(--border);background:rgba(255,255,255,.04);box-shadow:0 18px 50px rgba(0,0,0,.28);overflow:hidden}
+    body.modern .letter-head{display:flex;align-items:center;justify-content:space-between;gap:16px;padding:22px 22px;border-bottom:1px solid rgba(255,255,255,.10);background:linear-gradient(180deg, rgba(255,255,255,.06), rgba(255,255,255,.02))}
+    html[data-theme="light"] body.modern .letter-head{background:linear-gradient(180deg, rgba(17,24,39,.04), rgba(17,24,39,.02))}
+    body.modern .letter-brand{display:flex;align-items:center;gap:14px}
+    body.modern .letter-brand img{width:48px;height:48px;border-radius:16px;object-fit:contain;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.10)}
+    html[data-theme="light"] body.modern .letter-brand img{background:rgba(17,24,39,.04);border-color:rgba(17,24,39,.10)}
+    body.modern .letter-brand strong{display:block;color:var(--text);font-weight:950;letter-spacing:.2px}
+    body.modern .letter-brand small{display:block;color:var(--muted);font-weight:850;letter-spacing:.12em;text-transform:uppercase}
+    body.modern .letter-meta{display:flex;flex-direction:column;align-items:flex-end;gap:4px;color:var(--muted);font-weight:800}
+    body.modern .letter-meta b{color:var(--text);font-weight:950}
+    body.modern .letter-body{padding:24px 22px 10px}
+    body.modern .letter-body h1{margin:0 0 10px;font-size:clamp(22px,2.8vw,30px);letter-spacing:-.02em;color:var(--text)}
+    body.modern .letter-body p{margin:12px 0;color:var(--muted);line-height:1.75}
+    body.modern .sub{margin:8px 0 0;color:var(--muted);max-width:70ch}
+    body.modern .hero-collage{margin-top:16px;display:grid;grid-template-columns:1.25fr .75fr;gap:14px}
+    body.modern .shot{border-radius:18px;overflow:hidden;border:1px solid rgba(255,255,255,.10);background:rgba(255,255,255,.03);position:relative;min-height:220px}
+    html[data-theme="light"] body.modern .shot{border-color:rgba(17,24,39,.10);background:rgba(17,24,39,.02)}
+    body.modern .shot::after{content:"";position:absolute;inset:0;background:linear-gradient(180deg, transparent 45%, rgba(0,0,0,.45) 100%)}
+    html[data-theme="light"] body.modern .shot::after{background:linear-gradient(180deg, transparent 45%, rgba(17,24,39,.28) 100%)}
+    body.modern .shot img{width:100%;height:100%;object-fit:cover;display:block;transform:scale(1.02)}
+    body.modern .shot .cap{position:absolute;left:14px;right:14px;bottom:12px;z-index:2;display:flex;flex-direction:column;gap:4px}
+    body.modern .shot .cap b{color:var(--text);font-weight:950;letter-spacing:.10em;text-transform:uppercase;font-size:12px}
+    body.modern .shot .cap span{color:rgba(255,255,255,.86);font-weight:750}
+    html[data-theme="light"] body.modern .shot .cap span{color:rgba(17,24,39,.86)}
+    body.modern .shot-stack{display:grid;grid-template-rows:1fr 1fr;gap:14px}
+    body.modern .cap-grid{display:grid;grid-template-columns:repeat(12,1fr);gap:12px;margin-top:18px}
+    body.modern .cap-card{grid-column:span 6;border-radius:18px;border:1px solid rgba(255,255,255,.10);background:rgba(255,255,255,.03);padding:14px 14px;display:flex;gap:12px;align-items:flex-start}
+    html[data-theme="light"] body.modern .cap-card{border-color:rgba(17,24,39,.10);background:rgba(17,24,39,.02)}
+    body.modern .cap-ico{width:40px;height:40px;border-radius:14px;display:grid;place-items:center;border:1px solid rgba(255,255,255,.14);background:rgba(255,255,255,.04)}
+    html[data-theme="light"] body.modern .cap-ico{border-color:rgba(17,24,39,.10);background:rgba(17,24,39,.03)}
+    body.modern .cap-ico svg{width:20px;height:20px;stroke:var(--text);opacity:.95}
+    body.modern .cap-card h3{margin:0 0 4px;font-size:14px;letter-spacing:.08em;text-transform:uppercase}
+    body.modern .cap-card p{margin:0;color:var(--muted);line-height:1.65}
+    body.modern .cap-card .mini{margin-top:10px;display:flex;gap:8px;flex-wrap:wrap}
+    body.modern .cap-card .mini .pill{font-size:11px}
+    body.modern .value-row{margin-top:18px;display:grid;grid-template-columns:1fr 1fr;gap:14px}
+    body.modern .value{border-radius:18px;border:1px dashed rgba(255,255,255,.16);padding:14px 14px;color:var(--muted);background:rgba(255,255,255,.02)}
+    html[data-theme="light"] body.modern .value{border-color:rgba(17,24,39,.14)}
+    body.modern .value b{display:block;color:var(--text);margin-bottom:6px;letter-spacing:.10em;text-transform:uppercase;font-size:12px}
+    body.modern .letter-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:18px}
+    body.modern .letter-panel{border-radius:18px;border:1px solid rgba(255,255,255,.10);background:rgba(255,255,255,.03);padding:16px 16px}
+    html[data-theme="light"] body.modern .letter-panel{border-color:rgba(17,24,39,.10);background:rgba(17,24,39,.02)}
+    body.modern .letter-panel h2{margin:0 0 8px;font-size:13px;letter-spacing:.14em;text-transform:uppercase;color:var(--text)}
+    body.modern .letter-list{margin:0;padding-left:18px;color:var(--muted);line-height:1.7}
+    body.modern .letter-foot{padding:14px 22px 22px;border-top:1px solid rgba(255,255,255,.10);display:flex;align-items:flex-end;justify-content:space-between;gap:14px;flex-wrap:wrap}
+    body.modern .sig{display:flex;flex-direction:column;gap:2px}
+    body.modern .sig b{color:var(--text);font-weight:950}
+    body.modern .sig span{color:var(--muted);font-weight:800}
+    body.modern .cta{display:flex;gap:10px;flex-wrap:wrap}
+    @media (max-width: 900px){
+      body.modern .letter-grid{grid-template-columns:1fr}
+      body.modern .hero-collage{grid-template-columns:1fr}
+      body.modern .shot-stack{grid-template-rows:auto}
+      body.modern .cap-card{grid-column:span 12}
+      body.modern .value-row{grid-template-columns:1fr}
+      body.modern .letter-meta{align-items:flex-start}
+      body.modern .letter-head{flex-direction:column;align-items:flex-start}
+    }
+  </style>
+</head>
+<body class="modern">
+  <header class="header">
+    <div class="container">
+      <nav class="nav" aria-label="Navegación">
+        <a class="brand" href="index2.html" aria-label="Volver al sitio">
+          <img class="brand-logo" src="img/uploads/2021/09/agroequipos-pelaez-logo-transparente-2.png" alt="Agroequipos Pelaez" width="42" height="42" />
+          <span>
+            Agroequipos Pelaez
+            <small>Volver al sitio</small>
+          </span>
+        </a>
+        <div class="menu" role="navigation">
+          <a href="app.html" aria-label="Abrir ERP">ERP</a>
+        </div>
+      </nav>
+    </div>
+  </header>
+
+  <main class="container">
+    <section class="letter" aria-label="Carta de presentación">
+      <div class="letter-card">
+        <div class="letter-head">
+          <div class="letter-brand" aria-label="Olmeca Code">
+            <img src="img/uploads/2021/09/agroequipos-pelaez-logo-transparente-2.png" alt="Olmeca Code" />
+            <div>
+              <strong>Olmeca Code</strong>
+              <small>Implementación de sistemas</small>
+            </div>
+          </div>
+          <div class="letter-meta" aria-label="Metadatos">
+            <div><b>Para:</b> Agroequipos Pelaez</div>
+            <div><b>Asunto:</b> Implementación ERP + Sitio</div>
+            <div><b>Fecha:</b> <span id="proposal-date"></span></div>
+          </div>
+        </div>
+
+        <div class="letter-body">
+          <h1>Una operación más rápida, clara y controlada</h1>
+          <p class="sub">
+            Implementamos para <strong>Agroequipos Pelaez</strong> un sistema que conecta <strong>Ventas</strong>, <strong>Inventario</strong> y <strong>Envíos</strong>
+            con trazabilidad y documentos listos para imprimir/PDF.
+          </p>
+
+          <div class="hero-collage" aria-label="Vista general">
+            <div class="shot" aria-label="Operación">
+              <img src="img/uploads/2021/09/corrales-para-ganado-f1-grande.jpg" alt="Operación Agroequipos Pelaez" loading="lazy" />
+              <div class="cap">
+                <b>Control total</b>
+                <span>De la venta a la entrega, sin perder información.</span>
+              </div>
+            </div>
+            <div class="shot-stack" aria-label="Capacidades">
+              <div class="shot" aria-label="Inventario">
+                <img src="img/uploads/2021/09/basculas-ganaderas-pelaez-fondo.jpg" alt="Inventario" loading="lazy" />
+                <div class="cap">
+                  <b>Inventario</b>
+                  <span>Stock y precios siempre al día.</span>
+                </div>
+              </div>
+              <div class="shot" aria-label="Envíos">
+                <img src="img/uploads/2021/09/Banos-garrapaticidas-f1-grande.jpg" alt="Envíos" loading="lazy" />
+                <div class="cap">
+                  <b>Envíos</b>
+                  <span>Dirección + mapa + costo por distancia.</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="cap-grid" aria-label="Capacidades del sistema">
+            <div class="cap-card">
+              <div class="cap-ico" aria-hidden="true">
+                <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M8 7V6a4 4 0 0 1 8 0v1" />
+                  <path d="M6 7h12l-1 14H7L6 7Z" />
+                  <path d="M9 11h6" />
+                </svg>
+              </div>
+              <div>
+                <h3>Ventas</h3>
+                <p>Captura de orden, edición en modal y totales automáticos.</p>
+                <div class="mini">
+                  <span class="pill">Orden editable</span>
+                  <span class="pill">Cliente buscable</span>
+                  <span class="pill">Timestamps</span>
+                </div>
+              </div>
+            </div>
+
+            <div class="cap-card">
+              <div class="cap-ico" aria-hidden="true">
+                <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M3 3h18v6H3z" />
+                  <path d="M3 9h18v12H3z" />
+                  <path d="M7 13h10" />
+                  <path d="M7 17h6" />
+                </svg>
+              </div>
+              <div>
+                <h3>Inventario</h3>
+                <p>Catálogo por SKU, existencias y descuento automático al vender.</p>
+                <div class="mini">
+                  <span class="pill">Stock</span>
+                  <span class="pill">Precios</span>
+                  <span class="pill">Validación</span>
+                </div>
+              </div>
+            </div>
+
+            <div class="cap-card">
+              <div class="cap-ico" aria-hidden="true">
+                <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M12 21s7-4.4 7-11a7 7 0 1 0-14 0c0 6.6 7 11 7 11Z" />
+                  <path d="M12 10.5a1.5 1.5 0 1 0 0-3 1.5 1.5 0 0 0 0 3Z" />
+                </svg>
+              </div>
+              <div>
+                <h3>Envíos con mapa</h3>
+                <p>Dirección con autocompletado y soporte internacional cuando se requiera.</p>
+                <div class="mini">
+                  <span class="pill">Solo MX / Internacional</span>
+                  <span class="pill">Ubicación copiable</span>
+                </div>
+              </div>
+            </div>
+
+            <div class="cap-card">
+              <div class="cap-ico" aria-hidden="true">
+                <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M7 3h10v6H7z" />
+                  <path d="M5 9h14v12H5z" />
+                  <path d="M8 13h8" />
+                  <path d="M8 17h5" />
+                </svg>
+              </div>
+              <div>
+                <h3>Garantía / PDF</h3>
+                <p>Documento imprimible con logo, comprador, dirección y evidencia.</p>
+                <div class="mini">
+                  <span class="pill">Logo</span>
+                  <span class="pill">Datos del comprador</span>
+                  <span class="pill">PDF</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="value-row" aria-label="Beneficios">
+            <div class="value">
+              <b>Menos errores</b>
+              Stock validado al vender. Cambios con historial y consistencia.
+            </div>
+            <div class="value">
+              <b>Más velocidad</b>
+              Menos clicks, búsqueda rápida y edición inmediata de órdenes.
+            </div>
+          </div>
+
+          <div class="letter-grid" aria-label="Siguiente evolución">
+            <div class="letter-panel">
+              <h2>Lo que sigue</h2>
+              <ul class="letter-list">
+                <li>ID automático de clientes (C-001) y datos completos.</li>
+                <li>Series por unidad (items) para certificados por producto.</li>
+                <li>Costos logísticos, impuestos y reglas por destino.</li>
+                <li>Usuarios/roles y reportes.</li>
+              </ul>
+            </div>
+
+            <div class="letter-panel">
+              <h2>Entrega</h2>
+              <ul class="letter-list">
+                <li>Implementación por etapas (funcional desde el primer entregable).</li>
+                <li>Entrenamiento rápido a personal (ventas / almacén).</li>
+                <li>Plantillas de documentos (garantía / orden) listas para usar.</li>
+              </ul>
+            </div>
+          </div>
+
+          <p class="sub">
+            Nuestro compromiso: una solución que se sienta <strong>de Agroequipos Pelaez</strong>. Clara, rápida y lista para operar.
+          </p>
+        </div>
+
+        <div class="letter-foot">
+          <div class="sig" aria-label="Firma">
+            <b>Olmeca Code</b>
+            <span>Equipo de implementación</span>
+          </div>
+          <div class="cta" aria-label="Acciones">
+            <a class="btn" href="index2.html">Ver sitio</a>
+            <a class="btn btn-primary" href="app.html#ventas">Ir a Ventas (ERP)</a>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <script>
+    (function(){
+      var el = document.getElementById('proposal-date');
+      if (el) el.textContent = new Date().toLocaleDateString('es-MX', { year:'numeric', month:'long', day:'numeric' });
+      try{
+        var t = localStorage.getItem('theme');
+        if (t) document.documentElement.setAttribute('data-theme', t);
+      }catch(e){}
+    })();
+  </script>
+</body>
+</html>
+

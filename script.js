@@ -316,3 +316,95 @@
   track.addEventListener('pointerup', up, { passive: true });
   track.addEventListener('pointercancel', up, { passive: true });
 })();
+
+(function () {
+  const mapEl = document.querySelector('[data-contact-map]');
+  if (!mapEl) return;
+  if (!window.L) return;
+
+  const reduceMotion = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  // Mexico overview -> Office zoom
+  const mexicoCenter = [23.6345, -102.5528];
+  const mexicoZoom = 5;
+
+  // Office (from the provided Google embed)
+  const office = { lat: 18.03050008297051, lng: -92.91500602486634 };
+  const officeZoom = 16;
+
+  const map = window.L.map(mapEl, {
+    zoomControl: false,
+    scrollWheelZoom: false,
+    dragging: true,
+    tap: true,
+  }).setView(mexicoCenter, mexicoZoom);
+
+  const streets = window.L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    maxZoom: 19,
+    attribution: '&copy; OpenStreetMap',
+  });
+
+  // Satellite imagery (no API key) via Esri World Imagery
+  const satellite = window.L.tileLayer(
+    'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
+    {
+      maxZoom: 19,
+      attribution: 'Tiles &copy; Esri',
+    }
+  );
+
+  // Default: satellite for stronger visual impact
+  satellite.addTo(map);
+
+  // Keep streets as an optional base (no UI by default)
+  window.L.control.layers(
+    { Satélite: satellite, Calles: streets },
+    undefined,
+    { collapsed: true, position: 'bottomright' }
+  ).addTo(map);
+
+  const marker = window.L.marker([office.lat, office.lng]).addTo(map);
+
+  const animateToOffice = () => {
+    if (reduceMotion) {
+      map.setView([office.lat, office.lng], officeZoom);
+      return;
+    }
+
+    // Step 1: ensure we are on Mexico overview
+    map.setView(mexicoCenter, mexicoZoom, { animate: false });
+    // Step 2: cinematic zoom
+    window.setTimeout(() => {
+      map.flyTo([office.lat, office.lng], officeZoom, {
+        duration: 4,
+        easeLinearity: 0.22,
+      });
+    }, 250);
+  };
+
+  let didRun = false;
+  const runOnce = () => {
+    if (didRun) return;
+    didRun = true;
+    animateToOffice();
+  };
+
+  if ('IntersectionObserver' in window) {
+    const io = new IntersectionObserver(
+      (entries) => {
+        if (entries.some((e) => e.isIntersecting)) {
+          runOnce();
+          io.disconnect();
+        }
+      },
+      { threshold: 0.35 }
+    );
+    io.observe(mapEl);
+  } else {
+    // Fallback
+    window.setTimeout(runOnce, 600);
+  }
+
+  // Ensure proper tile sizing after layout
+  window.setTimeout(() => map.invalidateSize(true), 300);
+})();

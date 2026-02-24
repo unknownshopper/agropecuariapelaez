@@ -394,6 +394,14 @@ body.modern .carousel{
 body.modern .footer{padding:36px 0 52px;border-top:1px solid var(--border);color:var(--muted)}
 body.modern .footer-grid{display:grid;grid-template-columns:1.3fr .7fr;gap:18px;align-items:start}
 body.modern .footer-text{margin:10px 0 0;max-width:64ch}
+body.modern .footer-contact{margin-top:14px;display:flex;flex-direction:column;gap:12px}
+body.modern .footer-contact-row{display:grid;gap:6px}
+body.modern .footer-contact-row strong{color:var(--text);font-weight:900;font-size:12px;letter-spacing:.14em;text-transform:uppercase}
+body.modern .footer-contact-row span{color:var(--muted);max-width:70ch;line-height:1.55}
+body.modern .footer-contact-link{color:var(--text);font-weight:900}
+body.modern .footer-contact-link:hover{color:var(--brand)}
+body.modern .footer-map-frame{border-radius:18px;overflow:hidden;border:1px solid rgba(255,255,255,.10);background:rgba(255,255,255,.04)}
+body.modern .footer-map-frame .contact-map{display:block;width:100%;height:220px}
 body.modern .footer-links{display:flex;flex-direction:column;gap:10px;align-items:flex-start}
 body.modern .footer-link{color:var(--muted);font-weight:850;padding:10px 0}
 body.modern .footer-link:hover{color:var(--text)}

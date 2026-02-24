@@ -5,12 +5,13 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Agroequipos Pelaez</title>
   <link rel="stylesheet" href="style.css" />
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
 </head>
 <body class="modern">
   <header class="header">
     <div class="container">
       <nav class="nav" aria-label="Navegación principal">
-        <a class="brand" href="index2.html">
+        <a class="brand" href="app.html" aria-label="Ir al sistema">
           <img class="brand-logo" src="img/uploads/2021/09/agroequipos-pelaez-logo-transparente-2.png" alt="Agroequipos Pelaez" width="42" height="42" />
           <span>
             Agroequipos Pelaez
@@ -137,6 +138,27 @@
             <span>Agroequipos Pelaez</span>
           </div>
           <p class="footer-text">Fabricación y equipamiento para el campo. Sitio de propuesta con navegación local.</p>
+
+          <div class="footer-contact" aria-label="Dirección y contacto">
+            <div class="footer-contact-row">
+              <strong>Dirección</strong>
+              <span>Calle Acero esquina con prolongación de Antimonio s/n, Col. Ciudad Industrial, Villahermosa, Tabasco, México, CP 86010</span>
+            </div>
+            <div class="footer-contact-row">
+              <strong>Contacto</strong>
+              <span>
+                <a class="footer-contact-link" href="tel:+529931000000">(993) 100 0000</a>
+                <span aria-hidden="true"> · </span>
+                <a class="footer-contact-link" href="mailto:contacto@agroequipospelaez.com">contacto@agroequipospelaez.com</a>
+              </span>
+            </div>
+          </div>
+        </div>
+
+        <div class="footer-map" aria-label="Ubicación">
+          <div class="footer-map-frame">
+            <div class="contact-map" id="contact-map" data-contact-map aria-label="Mapa de ubicación"></div>
+          </div>
         </div>
         <div class="footer-links">
           <a class="footer-link" href="productos.html">Productos</a>
@@ -150,6 +172,7 @@
     </div>
   </footer>
 
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" defer></script>
   <script src="script.js" defer></script>
 </body>
 </html>
