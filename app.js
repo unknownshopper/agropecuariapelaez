@@ -7,7 +7,9 @@ const defaultState = {
     { id: 'C-001', nombre: 'Rancho La Esperanza', telefono: '555-123-4567', ciudad: 'Guadalajara', status: 'Activo' },
     { id: 'C-002', nombre: 'Agropecuaria El Norte', telefono: '555-987-1122', ciudad: 'Monterrey', status: 'Prospecto' },
   ],
+  leads: [],
   ventas: [],
+  fabricacion: [],
   inventario: [
     { sku: 'SKU-1001', nombre: 'Báscula ganadera 1100', categoria: 'Básculas', stock: 2, precio: 125000 },
     { sku: 'SKU-2001', nombre: 'Corral de manejo', categoria: 'Corrales', stock: 1, precio: 98000 },
@@ -32,7 +34,9 @@ function loadState() {
 
     return {
       clientes: Array.isArray(parsed.clientes) ? parsed.clientes : [],
+      leads: Array.isArray(parsed.leads) ? parsed.leads : [],
       ventas,
+      fabricacion: Array.isArray(parsed.fabricacion) ? parsed.fabricacion : [],
       inventario: Array.isArray(parsed.inventario) ? parsed.inventario : [],
       envios: Array.isArray(parsed.envios) ? parsed.envios : [],
     };
@@ -151,7 +155,9 @@ resetBtn?.addEventListener('click', () => {
   localStorage.removeItem(storeKey);
   const fresh = structuredClone(defaultState);
   state.clientes = fresh.clientes;
+  state.leads = fresh.leads;
   state.ventas = fresh.ventas;
+  state.fabricacion = fresh.fabricacion;
   state.inventario = fresh.inventario;
   state.envios = fresh.envios;
   saveState(state);
@@ -184,15 +190,569 @@ function setActiveNav(route) {
 
 function setPills() {
   const pDash = qs('[data-pill="dashboard"]');
+  const pLeads = qs('[data-pill="leads"]');
   const pCli = qs('[data-pill="clientes"]');
   const pVen = qs('[data-pill="ventas"]');
+  const pFab = qs('[data-pill="fabricacion"]');
   const pInv = qs('[data-pill="inventario"]');
   const pEnv = qs('[data-pill="envios"]');
   if (pDash) pDash.textContent = '';
+  if (pLeads) pLeads.textContent = String(state.leads.length);
   if (pCli) pCli.textContent = String(state.clientes.length);
   if (pVen) pVen.textContent = String(state.ventas.length);
+  if (pFab) pFab.textContent = String(state.fabricacion.length);
   if (pInv) pInv.textContent = String(state.inventario.length);
   if (pEnv) pEnv.textContent = String(state.envios.length);
+}
+
+function viewFabricacion() {
+  titleEl.textContent = 'Fabricación';
+  subtitleEl.textContent = 'Órdenes de fabricación (OF) y condicionantes (demo)';
+
+  const statusOptions = [
+    { v: 'Planeación', t: 'Planeación' },
+    { v: 'En proceso', t: 'En proceso' },
+    { v: 'Listo', t: 'Listo' },
+    { v: 'Entregado', t: 'Entregado' },
+    { v: 'Cancelado', t: 'Cancelado' },
+  ];
+
+  const buildCondicionantes = (categoria) => {
+    const base = { nota: '' };
+    const cat = String(categoria || '').toLowerCase();
+    if (cat.includes('remol')) {
+      return { ...base, tipo: '', capacidad: '', ejes: '', medidas: '', frenos: '', extras: '' };
+    }
+    if (cat.includes('corral')) {
+      return { ...base, medidasTerreno: '', tipoGanado: '', layout: '', puertas: '', extras: '' };
+    }
+    if (cat.includes('báscul') || cat.includes('bascul')) {
+      return { ...base, capacidad: '', plataforma: '', indicador: '', calibracion: '', extras: '' };
+    }
+    if (cat.includes('galera')) {
+      return { ...base, medidas: '', estructura: '', techo: '', extras: '' };
+    }
+    if (cat.includes('planta')) {
+      return { ...base, capacidad: '', voltaje: '', layout: '', extras: '' };
+    }
+    return { ...base, especificacion: '', extras: '' };
+  };
+
+  const openOFModal = (of) => {
+    const backdrop = el('div', { class: 'modal-backdrop', role: 'dialog', 'aria-modal': 'true' });
+    const modal = el('div', { class: 'modal' });
+
+    const close = () => {
+      document.removeEventListener('keydown', onKey);
+      backdrop.remove();
+    };
+
+    const onKey = (e) => {
+      if (e.key === 'Escape') close();
+    };
+    document.addEventListener('keydown', onKey);
+    backdrop.addEventListener('click', (e) => {
+      if (e.target === backdrop) close();
+    });
+
+    const statusSel = el('select', {}, statusOptions.map((o) => el('option', { value: o.v, text: o.t })));
+    statusSel.value = of.status || 'Planeación';
+
+    const entrega = el('input', { type: 'date', value: of.fechaCompromiso || '' });
+    const qty = el('input', { type: 'number', min: '1', step: '1', value: String(Number(of.cantidad) || 1) });
+    const nota = el('input', { type: 'text', value: (of.condicionantes?.nota || ''), placeholder: 'Nota rápida' });
+
+    const condWrap = el('div', { class: 'field' }, [el('label', { text: 'Condicionantes' })]);
+    const fields = [];
+    const cond = of.condicionantes && typeof of.condicionantes === 'object'
+      ? { ...buildCondicionantes(of.categoria), ...of.condicionantes }
+      : buildCondicionantes(of.categoria);
+
+    Object.keys(cond).forEach((k) => {
+      if (k === 'nota') return;
+      const input = el('input', { type: 'text', value: String(cond[k] ?? ''), placeholder: k });
+      fields.push({ k, input });
+      condWrap.appendChild(el('div', { class: 'row' }, [
+        el('div', { class: 'field' }, [el('label', { text: k }), input]),
+        el('div', { class: 'field' }, [el('label', { text: ' ' }), el('span', { class: 'pill', text: of.categoria || '-' })]),
+      ]));
+    });
+
+    const saveBtn = el('button', {
+      class: 'btn btn-primary',
+      type: 'button',
+      onclick: () => {
+        of.status = statusSel.value;
+        of.fechaCompromiso = entrega.value;
+        of.cantidad = Math.max(1, Math.floor(Number(qty.value) || 1));
+        of.condicionantes = of.condicionantes && typeof of.condicionantes === 'object' ? of.condicionantes : {};
+        of.condicionantes.nota = nota.value.trim();
+        fields.forEach((f) => {
+          of.condicionantes[f.k] = f.input.value.trim();
+        });
+        of.updatedAt = new Date().toISOString();
+        saveState(state);
+        close();
+        render();
+      },
+    }, ['Guardar cambios']);
+
+    const delBtn = el('button', {
+      class: 'btn',
+      type: 'button',
+      onclick: () => {
+        if (!window.confirm(`Eliminar ${of.id}?`)) return;
+        state.fabricacion = state.fabricacion.filter((x) => x.id !== of.id);
+        saveState(state);
+        close();
+        render();
+      },
+    }, ['Eliminar']);
+
+    const closeBtn = el('button', { class: 'btn', type: 'button', onclick: close }, ['Cerrar']);
+
+    const modalHeader = el('div', { class: 'modal-header' }, [
+      el('div', { class: 'modal-title' }, [
+        el('b', { text: 'Orden de fabricación' }),
+        el('span', { text: `${of.id} · ${of.sku || '-'} · OV: ${of.ventaId || '-'}` }),
+      ]),
+      el('div', { class: 'modal-actions' }, [delBtn, closeBtn, saveBtn]),
+    ]);
+
+    const modalBody = el('div', { class: 'modal-body' }, [
+      el('div', { class: 'row' }, [
+        el('div', { class: 'field' }, [el('label', { text: 'Estatus' }), statusSel]),
+        el('div', { class: 'field' }, [el('label', { text: 'Fecha compromiso' }), entrega]),
+      ]),
+      el('div', { class: 'row' }, [
+        el('div', { class: 'field' }, [el('label', { text: 'Cantidad' }), qty]),
+        el('div', { class: 'field' }, [el('label', { text: 'Nota' }), nota]),
+      ]),
+      condWrap,
+    ]);
+
+    modal.appendChild(modalHeader);
+    modal.appendChild(modalBody);
+    backdrop.appendChild(modal);
+    document.body.appendChild(backdrop);
+  };
+
+  const filterCard = el('div', { class: 'card' });
+  const fHead = el('div', { class: 'card-header' }, [el('strong', { text: 'Filtros' }), el('span', { class: 'pill', text: String(state.fabricacion.length) })]);
+  const fBody = el('div', { class: 'card-body' });
+  const q = el('input', { type: 'text', placeholder: 'Buscar por OF / OV / SKU / cliente...' });
+  const statusFilter = el('select', {}, [
+    el('option', { value: '', text: 'Todos los estatus' }),
+    ...statusOptions.map((o) => el('option', { value: o.v, text: o.t })),
+  ]);
+
+  fBody.appendChild(el('div', { class: 'row' }, [
+    el('div', { class: 'field' }, [el('label', { text: 'Buscar' }), q]),
+    el('div', { class: 'field' }, [el('label', { text: 'Estatus' }), statusFilter]),
+  ]));
+  filterCard.appendChild(fHead);
+  filterCard.appendChild(fBody);
+
+  const table = el('table');
+  table.appendChild(el('thead', {}, [
+    el('tr', {}, [
+      el('th', { text: 'OF' }),
+      el('th', { text: 'OV' }),
+      el('th', { text: 'SKU' }),
+      el('th', { text: 'Cantidad' }),
+      el('th', { text: 'Estatus' }),
+      el('th', { text: 'Compromiso' }),
+    ]),
+  ]));
+
+  const tbody = el('tbody');
+  const renderRows = () => {
+    const term = q.value.trim().toLowerCase();
+    const st = statusFilter.value;
+    tbody.replaceChildren();
+
+    const items = state.fabricacion.filter((it) => {
+      if (st && String(it.status || '') !== st) return false;
+      if (!term) return true;
+      const hay = `${it.id} ${it.ventaId || ''} ${it.sku || ''} ${it.clienteId || ''} ${it.producto || ''}`.toLowerCase();
+      return hay.includes(term);
+    });
+
+    items.forEach((it) => {
+      const tr = el('tr', { class: 'row-click' }, [
+        el('td', { text: it.id }),
+        el('td', { text: it.ventaId || '-' }),
+        el('td', { text: `${it.sku || '-'} · ${it.producto || '-'}` }),
+        el('td', { text: String(Number(it.cantidad) || 0) }),
+        el('td', {}, [el('span', { class: 'pill', text: it.status || 'Planeación' })]),
+        el('td', { text: it.fechaCompromiso || '-' }),
+      ]);
+      tr.addEventListener('click', () => openOFModal(it));
+      tbody.appendChild(tr);
+    });
+  };
+
+  q.addEventListener('input', renderRows);
+  statusFilter.addEventListener('change', renderRows);
+
+  table.appendChild(tbody);
+
+  const listCard = el('div', { class: 'card' }, [
+    el('div', { class: 'card-header' }, [el('strong', { text: 'Órdenes' }), el('span', { class: 'pill', text: String(state.fabricacion.length) })]),
+    el('div', { class: 'card-body' }, [table]),
+  ]);
+
+  renderRows();
+
+  return el('div', { class: 'grid' }, [filterCard, listCard]);
+}
+
+function viewLeads() {
+  titleEl.textContent = 'Leads';
+  subtitleEl.textContent = 'Prospectos y seguimiento (demo)';
+
+  const stageOptions = [
+    { v: 'Prospecto', t: 'Prospecto' },
+    { v: 'Contactado', t: 'Contactado' },
+    { v: 'Cotizado', t: 'Cotizado' },
+    { v: 'Negociación', t: 'Negociación' },
+    { v: 'Ganado', t: 'Ganado' },
+    { v: 'Perdido', t: 'Perdido' },
+  ];
+
+  const leadStockStatus = (interes) => {
+    const items = Array.isArray(interes) ? interes : [];
+    const flags = items.map((li) => {
+      const sku = String(li.sku || '').trim();
+      const q = Number(li.cantidad) || 0;
+      const inv = state.inventario.find((x) => x.sku === sku);
+      const stock = inv ? Number(inv.stock) || 0 : 0;
+      return { sku, q, stock, ok: sku && q > 0 ? q <= stock : true };
+    });
+    const ok = flags.every((f) => f.ok);
+    return { ok, flags };
+  };
+
+  const makeInteresEditor = (initialItems = []) => {
+    const wrap = el('div', { class: 'field' }, [el('label', { text: 'Interés (producto + cantidad)' })]);
+    const rows = [];
+
+    const addRow = (prefill) => {
+      const skuSel = el('select', {}, [
+        el('option', { value: '', text: 'Selecciona un SKU...' }),
+        ...state.inventario.map((it) => el('option', { value: it.sku, text: `${it.sku} · ${it.nombre}` })),
+      ]);
+      if (prefill?.sku) skuSel.value = prefill.sku;
+      const qty = el('input', { type: 'number', min: '1', step: '1', value: String(prefill?.cantidad || 1) });
+      const stockPill = el('span', { class: 'pill', text: 'Stock: -' });
+      const warn = el('span', { class: 'pill', text: 'OK' });
+      const delBtn = el('button', {
+        class: 'btn',
+        type: 'button',
+        onclick: () => {
+          const idx = rows.findIndex((x) => x.row === row);
+          if (idx >= 0) rows.splice(idx, 1);
+          row.remove();
+          sync();
+        },
+      }, ['Quitar']);
+
+      const row = el('div', { class: 'row' }, [
+        el('div', { class: 'field' }, [el('label', { text: 'SKU' }), skuSel]),
+        el('div', { class: 'field' }, [el('label', { text: 'Cantidad' }), qty]),
+        el('div', { class: 'field' }, [el('label', { text: 'Inventario' }), el('div', { class: 'actions' }, [stockPill, warn])]),
+        el('div', { class: 'field' }, [el('label', { text: ' ' }), delBtn]),
+      ]);
+
+      const obj = { row, skuSel, qty, stockPill, warn };
+      rows.push(obj);
+
+      const sync = () => {
+        const sku = skuSel.value;
+        const inv = state.inventario.find((x) => x.sku === sku);
+        const stock = inv ? Number(inv.stock) || 0 : null;
+        const q = Number(qty.value) || 0;
+        stockPill.textContent = `Stock: ${stock == null ? '-' : stock}`;
+        const ok = sku && q > 0 ? q <= (stock ?? 0) : true;
+        warn.textContent = !sku ? 'SKU' : ok ? 'OK' : 'Sin stock';
+        warn.style.borderColor = !sku ? 'rgba(255,255,255,.12)' : ok ? 'rgba(34,197,94,.35)' : 'rgba(239,68,68,.45)';
+        warn.style.color = !sku ? '' : ok ? 'rgba(34,197,94,.95)' : 'rgba(239,68,68,.95)';
+      };
+
+      skuSel.addEventListener('change', sync);
+      qty.addEventListener('input', sync);
+      sync();
+
+      wrap.appendChild(row);
+    };
+
+    const getItems = () => rows
+      .map((r) => {
+        const sku = r.skuSel.value;
+        const q = Math.floor(Number(r.qty.value) || 0);
+        if (!sku || q <= 0) return null;
+        return { sku, cantidad: q };
+      })
+      .filter(Boolean);
+
+    const syncAll = () => rows.forEach((r) => r.skuSel.dispatchEvent(new Event('change')));
+
+    const btn = el('button', { class: 'btn', type: 'button', onclick: () => { addRow(); syncAll(); } }, ['Agregar producto']);
+    wrap.appendChild(btn);
+
+    (Array.isArray(initialItems) ? initialItems : []).forEach((it) => addRow(it));
+    if (!rows.length) addRow();
+
+    return { wrap, getItems, syncAll };
+  };
+
+  const openLeadModal = (lead) => {
+    const backdrop = el('div', { class: 'modal-backdrop', role: 'dialog', 'aria-modal': 'true' });
+    const modal = el('div', { class: 'modal' });
+
+    const close = () => {
+      document.removeEventListener('keydown', onKey);
+      backdrop.remove();
+    };
+
+    const onKey = (e) => {
+      if (e.key === 'Escape') close();
+    };
+    document.addEventListener('keydown', onKey);
+    backdrop.addEventListener('click', (e) => {
+      if (e.target === backdrop) close();
+    });
+
+    const nombre = el('input', { type: 'text', value: lead.nombre || '' });
+    const empresa = el('input', { type: 'text', value: lead.empresa || '' });
+    const telefono = el('input', { type: 'text', value: lead.telefono || '' });
+    const ciudad = el('input', { type: 'text', value: lead.ciudad || '' });
+    const etapa = el('select', {}, stageOptions.map((o) => el('option', { value: o.v, text: o.t })));
+    etapa.value = lead.etapa || 'Prospecto';
+    const nota = el('input', { type: 'text', value: lead.nota || '', placeholder: 'Nota rápida' });
+    const interesEditor = makeInteresEditor(lead.interes || []);
+
+    const statusPill = el('span', { class: 'pill', text: 'Inventario: OK' });
+    const syncStockPill = () => {
+      const st = leadStockStatus(interesEditor.getItems());
+      statusPill.textContent = st.ok ? 'Inventario: OK' : 'Inventario: Revisar';
+      statusPill.style.borderColor = st.ok ? 'rgba(34,197,94,.35)' : 'rgba(239,68,68,.45)';
+      statusPill.style.color = st.ok ? 'rgba(34,197,94,.95)' : 'rgba(239,68,68,.95)';
+    };
+    syncStockPill();
+    // best-effort: re-sync on changes (event delegation)
+    interesEditor.wrap.addEventListener('change', syncStockPill);
+    interesEditor.wrap.addEventListener('input', syncStockPill);
+
+    const saveBtn = el('button', {
+      class: 'btn btn-primary',
+      type: 'button',
+      onclick: () => {
+        lead.nombre = nombre.value.trim();
+        lead.empresa = empresa.value.trim();
+        lead.telefono = telefono.value.trim();
+        lead.ciudad = ciudad.value.trim();
+        lead.etapa = etapa.value;
+        lead.nota = nota.value.trim();
+        lead.interes = interesEditor.getItems();
+        lead.updatedAt = new Date().toISOString();
+        saveState(state);
+        close();
+        render();
+      },
+    }, ['Guardar cambios']);
+
+    const delBtn = el('button', {
+      class: 'btn',
+      type: 'button',
+      onclick: () => {
+        if (!window.confirm(`Eliminar ${lead.id}?`)) return;
+        state.leads = state.leads.filter((x) => x.id !== lead.id);
+        saveState(state);
+        close();
+        render();
+      },
+    }, ['Eliminar']);
+
+    const closeBtn = el('button', { class: 'btn', type: 'button', onclick: close }, ['Cerrar']);
+
+    const modalHeader = el('div', { class: 'modal-header' }, [
+      el('div', { class: 'modal-title' }, [
+        el('b', { text: 'Editar lead' }),
+        el('span', { text: `${lead.id} · ${new Date(lead.createdAt || Date.now()).toLocaleString('es-MX')}` }),
+      ]),
+      el('div', { class: 'modal-actions' }, [statusPill, delBtn, closeBtn, saveBtn]),
+    ]);
+
+    const modalBody = el('div', { class: 'modal-body' }, [
+      el('div', { class: 'row' }, [
+        el('div', { class: 'field' }, [el('label', { text: 'Nombre' }), nombre]),
+        el('div', { class: 'field' }, [el('label', { text: 'Empresa / Rancho' }), empresa]),
+      ]),
+      el('div', { class: 'row' }, [
+        el('div', { class: 'field' }, [el('label', { text: 'Teléfono / WhatsApp' }), telefono]),
+        el('div', { class: 'field' }, [el('label', { text: 'Ciudad/Estado' }), ciudad]),
+      ]),
+      el('div', { class: 'row' }, [
+        el('div', { class: 'field' }, [el('label', { text: 'Etapa' }), etapa]),
+        el('div', { class: 'field' }, [el('label', { text: 'Nota' }), nota]),
+      ]),
+      interesEditor.wrap,
+    ]);
+
+    modal.appendChild(modalHeader);
+    modal.appendChild(modalBody);
+    backdrop.appendChild(modal);
+    document.body.appendChild(backdrop);
+  };
+
+  const form = el('form', { class: 'card' });
+  const header = el('div', { class: 'card-header' }, [
+    el('strong', { text: 'Nuevo lead' }),
+    el('button', { class: 'btn btn-primary', type: 'submit' }, ['Guardar']),
+  ]);
+  const body = el('div', { class: 'card-body' });
+
+  const nombre = el('input', { type: 'text', required: 'true', placeholder: 'Nombre' });
+  const empresa = el('input', { type: 'text', placeholder: 'Empresa / Rancho' });
+  const telefono = el('input', { type: 'text', placeholder: 'Teléfono / WhatsApp' });
+  const ciudad = el('input', { type: 'text', placeholder: 'Ciudad/Estado' });
+  const etapa = el('select', {}, stageOptions.map((o) => el('option', { value: o.v, text: o.t })));
+  const nota = el('input', { type: 'text', placeholder: 'Nota rápida (opcional)' });
+  const interesEditor = makeInteresEditor();
+
+  const invHint = el('span', { class: 'pill', text: 'Inventario visible' });
+
+  body.appendChild(el('div', { class: 'row' }, [
+    el('div', { class: 'field' }, [el('label', { text: 'Nombre' }), nombre]),
+    el('div', { class: 'field' }, [el('label', { text: 'Empresa / Rancho' }), empresa]),
+  ]));
+  body.appendChild(el('div', { class: 'row' }, [
+    el('div', { class: 'field' }, [el('label', { text: 'Teléfono / WhatsApp' }), telefono]),
+    el('div', { class: 'field' }, [el('label', { text: 'Ciudad/Estado' }), ciudad]),
+  ]));
+  body.appendChild(el('div', { class: 'row' }, [
+    el('div', { class: 'field' }, [el('label', { text: 'Etapa' }), etapa]),
+    el('div', { class: 'field' }, [el('label', { text: ' ' }), invHint]),
+  ]));
+  body.appendChild(el('div', { class: 'row' }, [
+    el('div', { class: 'field' }, [el('label', { text: 'Nota' }), nota]),
+    el('div', { class: 'field' }, [el('label', { text: ' ' }), el('span', { class: 'pill', text: 'Prospecto' })]),
+  ]));
+  body.appendChild(interesEditor.wrap);
+
+  form.appendChild(header);
+  form.appendChild(body);
+
+  form.addEventListener('submit', (e) => {
+    e.preventDefault();
+    const lead = {
+      id: uid('L'),
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+      nombre: nombre.value.trim(),
+      empresa: empresa.value.trim(),
+      telefono: telefono.value.trim(),
+      ciudad: ciudad.value.trim(),
+      etapa: etapa.value,
+      nota: nota.value.trim(),
+      interes: interesEditor.getItems(),
+    };
+    state.leads.unshift(lead);
+    saveState(state);
+    render();
+  });
+
+  const filterCard = el('div', { class: 'card' });
+  const fHead = el('div', { class: 'card-header' }, [el('strong', { text: 'Filtros' }), el('span', { class: 'pill', text: String(state.leads.length) })]);
+  const fBody = el('div', { class: 'card-body' });
+  const q = el('input', { type: 'text', placeholder: 'Buscar por nombre / empresa / teléfono...' });
+  const etapaFilter = el('select', {}, [
+    el('option', { value: '', text: 'Todas las etapas' }),
+    ...stageOptions.map((o) => el('option', { value: o.v, text: o.t })),
+  ]);
+
+  fBody.appendChild(el('div', { class: 'row' }, [
+    el('div', { class: 'field' }, [el('label', { text: 'Buscar' }), q]),
+    el('div', { class: 'field' }, [el('label', { text: 'Etapa' }), etapaFilter]),
+  ]));
+  filterCard.appendChild(fHead);
+  filterCard.appendChild(fBody);
+
+  const table = el('table');
+  table.appendChild(el('thead', {}, [
+    el('tr', {}, [
+      el('th', { text: 'Lead' }),
+      el('th', { text: 'Prospecto' }),
+      el('th', { text: 'Etapa' }),
+      el('th', { text: 'Interés' }),
+      el('th', { text: 'Inventario' }),
+      el('th', { text: '' }),
+    ]),
+  ]));
+
+  const tbody = el('tbody');
+  const renderRows = () => {
+    const term = q.value.trim().toLowerCase();
+    const st = etapaFilter.value;
+    tbody.replaceChildren();
+
+    const items = state.leads.filter((l) => {
+      if (st && String(l.etapa || '') !== st) return false;
+      if (!term) return true;
+      const hay = `${l.id} ${l.nombre || ''} ${l.empresa || ''} ${l.telefono || ''} ${l.ciudad || ''}`.toLowerCase();
+      return hay.includes(term);
+    });
+
+    items.forEach((l) => {
+      const s = leadStockStatus(l.interes);
+      const invPill = el('span', { class: 'pill', text: s.ok ? 'OK' : 'Revisar' });
+      invPill.style.borderColor = s.ok ? 'rgba(34,197,94,.35)' : 'rgba(239,68,68,.45)';
+      invPill.style.color = s.ok ? 'rgba(34,197,94,.95)' : 'rgba(239,68,68,.95)';
+
+      const interesTxt = (Array.isArray(l.interes) ? l.interes : [])
+        .slice(0, 2)
+        .map((it) => `${it.sku}×${it.cantidad}`)
+        .join(', ') || '-';
+
+      const del = el('button', {
+        class: 'btn',
+        type: 'button',
+        onclick: (e) => {
+          e?.stopPropagation?.();
+          if (!window.confirm(`Eliminar ${l.id}?`)) return;
+          state.leads = state.leads.filter((x) => x.id !== l.id);
+          saveState(state);
+          render();
+        },
+      }, ['Eliminar']);
+
+      const tr = el('tr', { class: 'row-click' }, [
+        el('td', { text: l.id }),
+        el('td', { text: `${l.nombre || '-'} · ${l.empresa || '-'}` }),
+        el('td', {}, [el('span', { class: 'pill', text: l.etapa || 'Prospecto' })]),
+        el('td', { text: interesTxt }),
+        el('td', {}, [invPill]),
+        el('td', {}, [del]),
+      ]);
+      tr.addEventListener('click', () => openLeadModal(l));
+      tbody.appendChild(tr);
+    });
+  };
+
+  q.addEventListener('input', renderRows);
+  etapaFilter.addEventListener('change', renderRows);
+
+  table.appendChild(tbody);
+
+  const listCard = el('div', { class: 'card' }, [
+    el('div', { class: 'card-header' }, [el('strong', { text: 'Lista' }), el('span', { class: 'pill', text: String(state.leads.length) })]),
+    el('div', { class: 'card-body' }, [table]),
+  ]);
+
+  renderRows();
+
+  return el('div', { class: 'grid' }, [form, filterCard, listCard]);
 }
 
 function viewVentas() {
@@ -297,6 +857,150 @@ function viewVentas() {
     const lines = [];
     const linesWrap = el('div', { class: 'field' }, [el('label', { text: 'Productos' })]);
 
+    const buildOFCondicionantes = (categoria) => {
+      const base = { nota: '' };
+      const cat = String(categoria || '').toLowerCase();
+      if (cat.includes('remol')) return { ...base, tipo: '', capacidad: '', ejes: '', medidas: '', frenos: '', extras: '' };
+      if (cat.includes('corral')) return { ...base, medidasTerreno: '', tipoGanado: '', layout: '', puertas: '', extras: '' };
+      if (cat.includes('báscul') || cat.includes('bascul')) return { ...base, capacidad: '', plataforma: '', indicador: '', calibracion: '', extras: '' };
+      if (cat.includes('galera')) return { ...base, medidas: '', estructura: '', techo: '', extras: '' };
+      if (cat.includes('planta')) return { ...base, capacidad: '', voltaje: '', layout: '', extras: '' };
+      return { ...base, especificacion: '', extras: '' };
+    };
+
+    const openOFModal = (of) => {
+      const backdrop = el('div', { class: 'modal-backdrop', role: 'dialog', 'aria-modal': 'true' });
+      const modal = el('div', { class: 'modal' });
+
+      const close = () => {
+        document.removeEventListener('keydown', onKey);
+        backdrop.remove();
+      };
+
+      const onKey = (e) => {
+        if (e.key === 'Escape') close();
+      };
+      document.addEventListener('keydown', onKey);
+      backdrop.addEventListener('click', (e) => {
+        if (e.target === backdrop) close();
+      });
+
+      const statusSel = el('select', {}, [
+        el('option', { value: 'Planeación', text: 'Planeación' }),
+        el('option', { value: 'En proceso', text: 'En proceso' }),
+        el('option', { value: 'Listo', text: 'Listo' }),
+        el('option', { value: 'Entregado', text: 'Entregado' }),
+        el('option', { value: 'Cancelado', text: 'Cancelado' }),
+      ]);
+      statusSel.value = of.status || 'Planeación';
+
+      const entrega = el('input', { type: 'date', value: of.fechaCompromiso || '' });
+      const qty = el('input', { type: 'number', min: '1', step: '1', value: String(Number(of.cantidad) || 1) });
+      const nota = el('input', { type: 'text', value: (of.condicionantes?.nota || ''), placeholder: 'Nota rápida' });
+
+      const condWrap = el('div', { class: 'field' }, [el('label', { text: 'Condicionantes' })]);
+      const fields = [];
+      const cond = of.condicionantes && typeof of.condicionantes === 'object'
+        ? { ...buildOFCondicionantes(of.categoria), ...of.condicionantes }
+        : buildOFCondicionantes(of.categoria);
+
+      Object.keys(cond).forEach((k) => {
+        if (k === 'nota') return;
+        const input = el('input', { type: 'text', value: String(cond[k] ?? ''), placeholder: k });
+        fields.push({ k, input });
+        condWrap.appendChild(el('div', { class: 'row' }, [
+          el('div', { class: 'field' }, [el('label', { text: k }), input]),
+          el('div', { class: 'field' }, [el('label', { text: ' ' }), el('span', { class: 'pill', text: of.categoria || '-' })]),
+        ]));
+      });
+
+      const saveBtn = el('button', {
+        class: 'btn btn-primary',
+        type: 'button',
+        onclick: () => {
+          of.status = statusSel.value;
+          of.fechaCompromiso = entrega.value;
+          of.cantidad = Math.max(1, Math.floor(Number(qty.value) || 1));
+          of.condicionantes = of.condicionantes && typeof of.condicionantes === 'object' ? of.condicionantes : {};
+          of.condicionantes.nota = nota.value.trim();
+          fields.forEach((f) => {
+            of.condicionantes[f.k] = f.input.value.trim();
+          });
+          of.updatedAt = new Date().toISOString();
+          saveState(state);
+          close();
+          render();
+        },
+      }, ['Guardar cambios']);
+
+      const gotoBtn = el('a', { class: 'btn', href: '#fabricacion', onclick: () => close() }, ['Ver lista']);
+      const closeBtn = el('button', { class: 'btn', type: 'button', onclick: close }, ['Cerrar']);
+
+      const modalHeader = el('div', { class: 'modal-header' }, [
+        el('div', { class: 'modal-title' }, [
+          el('b', { text: 'Orden de fabricación' }),
+          el('span', { text: `${of.id} · ${of.sku || '-'} · ${of.producto || '-'}` }),
+        ]),
+        el('div', { class: 'modal-actions' }, [gotoBtn, closeBtn, saveBtn]),
+      ]);
+
+      const modalBody = el('div', { class: 'modal-body' }, [
+        el('div', { class: 'row' }, [
+          el('div', { class: 'field' }, [el('label', { text: 'OV' }), el('input', { type: 'text', readonly: 'true', value: of.ventaId || order.id })]),
+          el('div', { class: 'field' }, [el('label', { text: 'Cliente' }), el('input', { type: 'text', readonly: 'true', value: of.clienteId || order.clienteId })]),
+        ]),
+        el('div', { class: 'row' }, [
+          el('div', { class: 'field' }, [el('label', { text: 'Estatus' }), statusSel]),
+          el('div', { class: 'field' }, [el('label', { text: 'Fecha compromiso' }), entrega]),
+        ]),
+        el('div', { class: 'row' }, [
+          el('div', { class: 'field' }, [el('label', { text: 'Cantidad' }), qty]),
+          el('div', { class: 'field' }, [el('label', { text: 'Nota' }), nota]),
+        ]),
+        condWrap,
+      ]);
+
+      modal.appendChild(modalHeader);
+      modal.appendChild(modalBody);
+      backdrop.appendChild(modal);
+      document.body.appendChild(backdrop);
+    };
+
+    const createOFForLine = (li) => {
+      const sku = String(li?.sku || '').trim();
+      const qty = Math.max(1, Math.floor(Number(li?.cantidad) || 1));
+      if (!sku) return;
+
+      const inv = state.inventario.find((x) => x.sku === sku);
+      const producto = inv?.nombre || li?.nombre || '';
+      const categoria = inv?.categoria || li?.categoria || '';
+
+      const existing = (state.fabricacion || []).find((x) => x.ventaId === order.id && x.sku === sku);
+      if (existing) {
+        openOFModal(existing);
+        return;
+      }
+
+      const of = {
+        id: uid('OF'),
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+        ventaId: order.id,
+        clienteId: order.clienteId,
+        sku,
+        producto,
+        categoria,
+        cantidad: qty,
+        status: 'Planeación',
+        fechaCompromiso: '',
+        condicionantes: buildOFCondicionantes(categoria),
+      };
+
+      state.fabricacion.unshift(of);
+      saveState(state);
+      openOFModal(of);
+    };
+
     const recalc = () => {
       const items = lines
         .map((l) => {
@@ -338,10 +1042,21 @@ function viewVentas() {
         },
       }, ['Quitar']);
 
+      const fabBtn = el('button', { class: 'btn', type: 'button', onclick: () => {
+        const sku = skuSel.value;
+        const it = state.inventario.find((x) => x.sku === sku);
+        const q = Math.floor(Number(qty.value) || 0);
+        if (!it || !sku || q <= 0) {
+          window.alert('Selecciona un SKU y cantidad válida para fabricar.');
+          return;
+        }
+        createOFForLine({ sku: it.sku, nombre: it.nombre, categoria: it.categoria, cantidad: q });
+      } }, ['Fabricar']);
+
       const row = el('div', { class: 'row' }, [
         el('div', { class: 'field' }, [el('label', { text: 'SKU' }), skuSel]),
         el('div', { class: 'field' }, [el('label', { text: 'Cantidad' }), qty]),
-        el('div', { class: 'field' }, [el('label', { text: ' ' }), delBtn]),
+        el('div', { class: 'field' }, [el('label', { text: 'Acciones' }), el('div', { class: 'actions' }, [fabBtn, delBtn])]),
       ]);
 
       const obj = { row, skuSel, qty };
@@ -528,6 +1243,7 @@ function viewVentas() {
     if (prefillSku) skuSel.value = prefillSku;
 
     const qty = el('input', { type: 'number', min: '1', step: '1', value: '1' });
+    const fabricar = el('input', { type: 'checkbox' });
     const stockTxt = el('span', { class: 'pill', text: 'Stock: -' });
     const priceTxt = el('span', { class: 'pill', text: 'Precio: -' });
     const warn = el('span', { class: 'pill', text: 'OK' });
@@ -547,10 +1263,14 @@ function viewVentas() {
       el('div', { class: 'field' }, [el('label', { text: 'SKU' }), skuSel]),
       el('div', { class: 'field' }, [el('label', { text: 'Cantidad' }), qty]),
       el('div', { class: 'field' }, [el('label', { text: 'Info' }), el('div', { class: 'actions' }, [stockTxt, priceTxt, warn])]),
+      el('div', { class: 'field' }, [
+        el('label', { text: 'Fabricar' }),
+        el('label', { style: 'display:flex;align-items:center;gap:10px' }, [fabricar, document.createTextNode('Bajo fabricación')]),
+      ]),
       el('div', { class: 'field' }, [el('label', { text: ' ' }), delBtn]),
     ]);
 
-    const lineObj = { row, skuSel, qty, stockTxt, priceTxt, warn };
+    const lineObj = { row, skuSel, qty, fabricar, stockTxt, priceTxt, warn };
     lines.push(lineObj);
 
     const syncInfo = () => {
@@ -559,19 +1279,33 @@ function viewVentas() {
       const stock = it ? Number(it.stock) || 0 : null;
       const price = it ? Number(it.precio) || 0 : null;
       const q = Number(qty.value) || 0;
+      const isFab = Boolean(fabricar.checked);
 
       stockTxt.textContent = `Stock: ${stock == null ? '-' : stock}`;
       priceTxt.textContent = `Precio: ${price == null ? '-' : money(price)}`;
 
-      const ok = it && q > 0 && q <= stock;
-      warn.textContent = !it ? 'SKU' : ok ? 'OK' : 'Sin stock';
-      warn.style.borderColor = !it ? 'rgba(255,255,255,.12)' : ok ? 'rgba(34,197,94,.35)' : 'rgba(239,68,68,.45)';
-      warn.style.color = !it ? '' : ok ? 'rgba(34,197,94,.95)' : 'rgba(239,68,68,.95)';
+      const ok = isFab ? (it && q > 0) : (it && q > 0 && q <= stock);
+      warn.textContent = !it ? 'SKU' : isFab ? 'Fabricar' : ok ? 'OK' : 'Sin stock';
+      warn.style.borderColor = !it
+        ? 'rgba(255,255,255,.12)'
+        : isFab
+          ? 'rgba(255,183,3,.45)'
+          : ok
+            ? 'rgba(34,197,94,.35)'
+            : 'rgba(239,68,68,.45)';
+      warn.style.color = !it
+        ? ''
+        : isFab
+          ? 'rgba(255,183,3,.95)'
+          : ok
+            ? 'rgba(34,197,94,.95)'
+            : 'rgba(239,68,68,.95)';
       recalc();
     };
 
     skuSel.addEventListener('change', syncInfo);
     qty.addEventListener('input', syncInfo);
+    fabricar.addEventListener('change', syncInfo);
     syncInfo();
 
     linesWrap.appendChild(row);
@@ -641,6 +1375,7 @@ function viewVentas() {
           categoria: it.categoria,
           cantidad: q,
           precio: Number(it.precio) || 0,
+          fabricar: Boolean(l.fabricar?.checked),
         };
       })
       .filter(Boolean);
@@ -650,8 +1385,9 @@ function viewVentas() {
       return;
     }
 
-    // validate stock
+    // validate stock (solo líneas NO fabricadas)
     for (const li of selected) {
+      if (li.fabricar) continue;
       const inv = state.inventario.find((x) => x.sku === li.sku);
       const stock = inv ? Number(inv.stock) || 0 : 0;
       if (li.cantidad > stock) {
@@ -660,8 +1396,9 @@ function viewVentas() {
       }
     }
 
-    // deduct stock
+    // deduct stock (solo líneas NO fabricadas)
     selected.forEach((li) => {
+      if (li.fabricar) return;
       const inv = state.inventario.find((x) => x.sku === li.sku);
       if (!inv) return;
       inv.stock = Math.max(0, (Number(inv.stock) || 0) - li.cantidad);
@@ -673,8 +1410,9 @@ function viewVentas() {
     const impuestos = (subtotal + envio) * (taxPct / 100);
     const total = subtotal + envio + impuestos;
 
+    const ocId = uid('OV');
     const oc = {
-      id: uid('OV'),
+      id: ocId,
       fecha: new Date().toISOString(),
       clienteId: cliente.value,
       compradorNombre: compradorNombre.value.trim(),
@@ -688,6 +1426,39 @@ function viewVentas() {
       items: selected,
       status: 'Generada',
     };
+
+    const buildOFCondicionantes = (categoria) => {
+      const base = { nota: '' };
+      const cat = String(categoria || '').toLowerCase();
+      if (cat.includes('remol')) return { ...base, tipo: '', capacidad: '', ejes: '', medidas: '', frenos: '', extras: '' };
+      if (cat.includes('corral')) return { ...base, medidasTerreno: '', tipoGanado: '', layout: '', puertas: '', extras: '' };
+      if (cat.includes('báscul') || cat.includes('bascul')) return { ...base, capacidad: '', plataforma: '', indicador: '', calibracion: '', extras: '' };
+      if (cat.includes('galera')) return { ...base, medidas: '', estructura: '', techo: '', extras: '' };
+      if (cat.includes('planta')) return { ...base, capacidad: '', voltaje: '', layout: '', extras: '' };
+      return { ...base, especificacion: '', extras: '' };
+    };
+
+    // generar OF por líneas marcadas como fabricar (una por SKU en esta OV)
+    selected
+      .filter((li) => li.fabricar)
+      .forEach((li) => {
+        const existing = (state.fabricacion || []).find((x) => x.ventaId === ocId && x.sku === li.sku);
+        if (existing) return;
+        state.fabricacion.unshift({
+          id: uid('OF'),
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+          ventaId: ocId,
+          clienteId: cliente.value,
+          sku: li.sku,
+          producto: li.nombre,
+          categoria: li.categoria,
+          cantidad: Math.max(1, Math.floor(Number(li.cantidad) || 1)),
+          status: 'Planeación',
+          fechaCompromiso: '',
+          condicionantes: buildOFCondicionantes(li.categoria),
+        });
+      });
 
     state.ventas.unshift(oc);
     saveState(state);
@@ -1285,8 +2056,10 @@ function viewInventario() {
 
 const routes = {
   dashboard: viewDashboard,
+  leads: viewLeads,
   clientes: viewClientes,
   ventas: viewVentas,
+  fabricacion: viewFabricacion,
   inventario: viewInventario,
   envios: viewEnvios,
 };

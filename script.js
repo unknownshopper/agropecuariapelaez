@@ -282,12 +282,16 @@
   let startX = 0;
   let startLeft = 0;
   let pointerId = null;
+  let didDrag = false;
+  const dragStartThresholdPx = 8;
 
   const down = (e) => {
+    if (e.button != null && e.button !== 0) return;
     isDown = true;
     pointerId = e.pointerId;
     startX = e.clientX;
     startLeft = track.scrollLeft;
+    didDrag = false;
     stop();
     if (resumeTimer) window.clearTimeout(resumeTimer);
     track.classList.add('is-dragging');
@@ -299,6 +303,10 @@
   const move = (e) => {
     if (!isDown || e.pointerId !== pointerId) return;
     const dx = e.clientX - startX;
+
+    if (!didDrag && Math.abs(dx) < dragStartThresholdPx) return;
+
+    didDrag = true;
     track.scrollLeft = startLeft - dx;
     e.preventDefault();
   };
@@ -308,6 +316,15 @@
     isDown = false;
     pointerId = null;
     track.classList.remove('is-dragging');
+    if (didDrag) {
+      // Prevent accidental navigation when the user was dragging.
+      const cancelClickOnce = (ev) => {
+        ev.preventDefault();
+        ev.stopPropagation();
+        track.removeEventListener('click', cancelClickOnce, true);
+      };
+      track.addEventListener('click', cancelClickOnce, true);
+    }
     scheduleResume();
   };
 
