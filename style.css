@@ -377,6 +377,41 @@ body.modern .card .meta{display:flex;justify-content:space-between;align-items:c
 
 body.modern .section-carousel{padding:44px 0 64px}
 body.modern .carousel{position:relative}
+body.modern .carousel-controls{
+  position:absolute;
+  left:8px;
+  right:8px;
+  top:50%;
+  transform:translateY(-50%);
+  display:flex;
+  justify-content:space-between;
+  z-index:4;
+  pointer-events:none;
+}
+body.modern .carousel-btn{
+  width:42px;
+  height:82px;
+  border-radius:16px;
+  border:1px solid rgb(255, 0, 0);
+  background:rgba(11,18,32,.58);
+  backdrop-filter:saturate(120%) blur(10px);
+  color:var(--text);
+  font-weight:900;
+  cursor:pointer;
+  pointer-events:auto;
+  box-shadow:
+    0 10px 24px rgb(255, 1, 1),
+    0 0 0 4px rgba(255,1,1,.08);
+}
+body.modern .carousel-btn:hover{filter:brightness(1.03)}
+body.modern .carousel-btn:active{transform:translateY(1px)}
+html[data-theme="light"] body.modern .carousel-btn{
+  border:1px solid rgba(17,24,39,.20);
+  background:rgba(255,255,255,.78);
+  box-shadow:
+    0 10px 24px rgba(17,24,39,.12),
+    0 0 0 4px rgba(255,255,255,.55);
+}
 body.modern .carousel-track{
   display:flex;
   gap:16px;

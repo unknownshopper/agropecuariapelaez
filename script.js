@@ -197,141 +197,174 @@
 
 (function () {
   const reduceMotion = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-  const carousel = document.querySelector('[data-carousel]');
-  if (!carousel) return;
+  const carousels = Array.from(document.querySelectorAll('[data-carousel]'));
+  if (!carousels.length) return;
 
-  const track = carousel.querySelector('.carousel-track');
-  if (!track) return;
+  carousels.forEach((carousel) => {
+    const track = carousel.querySelector('.carousel-track');
+    if (!track) return;
 
-  const cards = Array.from(track.querySelectorAll('.card--carousel'));
-  if (cards.length < 2) return;
+    const cards = Array.from(track.querySelectorAll('.card--carousel'));
+    if (cards.length < 2) return;
 
-  // Auto-scroll
-  let timer = null;
-  let resumeTimer = null;
-  const resumeDelayMs = 1400;
+    // Auto-scroll
+    let timer = null;
+    let resumeTimer = null;
+    const resumeDelayMs = 1400;
 
-  const scheduleResume = () => {
-    if (reduceMotion) return;
-    if (resumeTimer) window.clearTimeout(resumeTimer);
-    resumeTimer = window.setTimeout(() => {
-      resumeTimer = null;
-      start();
-    }, resumeDelayMs);
-  };
+    const scheduleResume = () => {
+      if (reduceMotion) return;
+      if (resumeTimer) window.clearTimeout(resumeTimer);
+      resumeTimer = window.setTimeout(() => {
+        resumeTimer = null;
+        start();
+      }, resumeDelayMs);
+    };
 
-  const getStep = () => {
-    const first = cards[0];
-    if (!first) return 320;
-    const style = window.getComputedStyle(track);
-    const gap = parseFloat(style.columnGap || style.gap || '0') || 0;
-    return first.getBoundingClientRect().width + gap;
-  };
+    const getStep = () => {
+      const first = cards[0];
+      if (!first) return 320;
+      const style = window.getComputedStyle(track);
+      const gap = parseFloat(style.columnGap || style.gap || '0') || 0;
+      return first.getBoundingClientRect().width + gap;
+    };
 
-  const tick = () => {
-    const step = getStep();
-    const maxScroll = track.scrollWidth - track.clientWidth;
-    const next = track.scrollLeft + step;
-    if (next >= maxScroll - 4) track.scrollTo({ left: 0, behavior: 'smooth' });
-    else track.scrollBy({ left: step, behavior: 'smooth' });
-  };
+    const tick = (dir = 1) => {
+      const step = getStep();
+      const maxScroll = track.scrollWidth - track.clientWidth;
+      const next = track.scrollLeft + step * dir;
+      if (dir > 0 && next >= maxScroll - 4) track.scrollTo({ left: 0, behavior: 'smooth' });
+      else if (dir < 0 && next <= 0) track.scrollTo({ left: maxScroll, behavior: 'smooth' });
+      else track.scrollBy({ left: step * dir, behavior: 'smooth' });
+    };
 
-  const start = () => {
-    if (reduceMotion) return;
-    stop();
-    timer = window.setInterval(tick, 4200);
-  };
+    const start = () => {
+      if (reduceMotion) return;
+      stop();
+      timer = window.setInterval(() => tick(1), 4200);
+    };
 
-  const stop = () => {
-    if (timer) window.clearInterval(timer);
-    timer = null;
-  };
+    const stop = () => {
+      if (timer) window.clearInterval(timer);
+      timer = null;
+    };
 
-  carousel.addEventListener('mouseenter', stop);
-  carousel.addEventListener('mouseleave', scheduleResume);
+    carousel.addEventListener('mouseenter', stop);
+    carousel.addEventListener('mouseleave', scheduleResume);
 
-  // Touch intent
-  carousel.addEventListener('touchstart', stop, { passive: true });
-  carousel.addEventListener('touchend', scheduleResume, { passive: true });
+    // Touch intent
+    carousel.addEventListener('touchstart', stop, { passive: true });
+    carousel.addEventListener('touchend', scheduleResume, { passive: true });
 
-  // Trackpad / mousewheel horizontal scroll
-  track.addEventListener('wheel', () => {
-    stop();
-    scheduleResume();
-  }, { passive: true });
-
-  // Any manual scrolling should pause and resume after a brief idle.
-  let scrollDebounce = 0;
-  track.addEventListener('scroll', () => {
-    stop();
-    if (scrollDebounce) window.clearTimeout(scrollDebounce);
-    scrollDebounce = window.setTimeout(() => {
-      scrollDebounce = 0;
+    // Trackpad / mousewheel horizontal scroll
+    track.addEventListener('wheel', () => {
+      stop();
       scheduleResume();
-    }, 120);
-  }, { passive: true });
-  document.addEventListener('visibilitychange', () => {
-    if (document.hidden) stop();
-    else start();
+    }, { passive: true });
+
+    // Any manual scrolling should pause and resume after a brief idle.
+    let scrollDebounce = 0;
+    track.addEventListener('scroll', () => {
+      stop();
+      if (scrollDebounce) window.clearTimeout(scrollDebounce);
+      scrollDebounce = window.setTimeout(() => {
+        scrollDebounce = 0;
+        scheduleResume();
+      }, 120);
+    }, { passive: true });
+    document.addEventListener('visibilitychange', () => {
+      if (document.hidden) stop();
+      else start();
+    });
+
+    start();
+
+    // Buttons
+    const prevBtn = carousel.querySelector('[data-carousel-prev]');
+    const nextBtn = carousel.querySelector('[data-carousel-next]');
+    prevBtn?.addEventListener('click', () => {
+      stop();
+      tick(-1);
+      scheduleResume();
+    });
+    nextBtn?.addEventListener('click', () => {
+      stop();
+      tick(1);
+      scheduleResume();
+    });
+
+    // Drag / swipe to scroll the carousel
+    let isDown = false;
+    let startX = 0;
+    let startY = 0;
+    let startLeft = 0;
+    let pointerId = null;
+    let didDrag = false;
+    const dragStartThresholdPx = 14;
+    const dragDirectionRatio = 1.2;
+    let hasCapture = false;
+
+    const down = (e) => {
+      if (e.button != null && e.button !== 0) return;
+      isDown = true;
+      pointerId = e.pointerId;
+      startX = e.clientX;
+      startY = e.clientY;
+      startLeft = track.scrollLeft;
+      didDrag = false;
+      hasCapture = false;
+      stop();
+      if (resumeTimer) window.clearTimeout(resumeTimer);
+    };
+
+    const move = (e) => {
+      if (!isDown || e.pointerId !== pointerId) return;
+
+      const dx = e.clientX - startX;
+      const dy = e.clientY - startY;
+
+      if (!didDrag) {
+        const mostlyHorizontal = Math.abs(dx) > Math.abs(dy) * dragDirectionRatio;
+        if (!mostlyHorizontal) return;
+        if (Math.abs(dx) < dragStartThresholdPx) return;
+      }
+
+      didDrag = true;
+      if (!hasCapture) {
+        hasCapture = true;
+        track.classList.add('is-dragging');
+        track.style.userSelect = 'none';
+        try {
+          track.setPointerCapture(pointerId);
+        } catch {}
+      }
+      track.scrollLeft = startLeft - dx;
+      e.preventDefault();
+    };
+
+    const up = (e) => {
+      if (e.pointerId !== pointerId) return;
+      isDown = false;
+      pointerId = null;
+      track.classList.remove('is-dragging');
+      track.style.userSelect = '';
+      if (didDrag) {
+        // Prevent accidental navigation when the user was dragging.
+        const cancelClickOnce = (ev) => {
+          ev.preventDefault();
+          ev.stopPropagation();
+          track.removeEventListener('click', cancelClickOnce, true);
+        };
+        track.addEventListener('click', cancelClickOnce, true);
+      }
+      scheduleResume();
+    };
+
+    track.addEventListener('pointerdown', down, { passive: true });
+    track.addEventListener('pointermove', move, { passive: false });
+    track.addEventListener('pointerup', up, { passive: true });
+    track.addEventListener('pointercancel', up, { passive: true });
   });
-
-  start();
-
-  // Drag / swipe to scroll the carousel
-  let isDown = false;
-  let startX = 0;
-  let startLeft = 0;
-  let pointerId = null;
-  let didDrag = false;
-  const dragStartThresholdPx = 8;
-
-  const down = (e) => {
-    if (e.button != null && e.button !== 0) return;
-    isDown = true;
-    pointerId = e.pointerId;
-    startX = e.clientX;
-    startLeft = track.scrollLeft;
-    didDrag = false;
-    stop();
-    if (resumeTimer) window.clearTimeout(resumeTimer);
-    track.classList.add('is-dragging');
-    try {
-      track.setPointerCapture(pointerId);
-    } catch {}
-  };
-
-  const move = (e) => {
-    if (!isDown || e.pointerId !== pointerId) return;
-    const dx = e.clientX - startX;
-
-    if (!didDrag && Math.abs(dx) < dragStartThresholdPx) return;
-
-    didDrag = true;
-    track.scrollLeft = startLeft - dx;
-    e.preventDefault();
-  };
-
-  const up = (e) => {
-    if (e.pointerId !== pointerId) return;
-    isDown = false;
-    pointerId = null;
-    track.classList.remove('is-dragging');
-    if (didDrag) {
-      // Prevent accidental navigation when the user was dragging.
-      const cancelClickOnce = (ev) => {
-        ev.preventDefault();
-        ev.stopPropagation();
-        track.removeEventListener('click', cancelClickOnce, true);
-      };
-      track.addEventListener('click', cancelClickOnce, true);
-    }
-    scheduleResume();
-  };
-
-  track.addEventListener('pointerdown', down, { passive: true });
-  track.addEventListener('pointermove', move, { passive: false });
-  track.addEventListener('pointerup', up, { passive: true });
-  track.addEventListener('pointercancel', up, { passive: true });
 })();
 
 (function () {
